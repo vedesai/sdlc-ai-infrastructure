@@ -1,0 +1,37 @@
+# OS generated files
+.DS_Store
+._*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# AWS
+.aws-sam/
+
+# Build artifacts
+dist/
+build/
+target/
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+
+# Secrets
+*.pem
+*.key
+
+# CloudFormation packaged templates
+packaged-*.yaml
