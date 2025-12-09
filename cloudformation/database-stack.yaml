@@ -1,0 +1,69 @@
+# AI Generated Code by Deloitte + Cursor (BEGIN)
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SDLC-AI Database Infrastructure - RDS PostgreSQL with Secrets Manager'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: sdlc-ai
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.medium
+  DBName:
+    Type: String
+    Default: sdlcai
+  AllocatedStorage:
+    Type: Number
+    Default: 20
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, 'prod']
+
+Resources:
+  DBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${ProjectName}/${Environment}/database'
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "dbadmin"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\\'
+
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: !If [IsProduction, Snapshot, Delete]
+    Properties:
+      DBInstanceIdentifier: !Sub '${ProjectName}-${Environment}-db'
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: postgres
+      EngineVersion: '16.3'
+      DBName: !Ref DBName
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:password}}'
+      AllocatedStorage: !Ref AllocatedStorage
+      StorageType: gp3
+      StorageEncrypted: true
+      DBSubnetGroupName: !ImportValue
+        Fn::Sub: '${ProjectName}-${Environment}-DatabaseSubnetGroup'
+      VPCSecurityGroups:
+        - !ImportValue
+          Fn::Sub: '${ProjectName}-${Environment}-DatabaseSecurityGroupId'
+      MultiAZ: !If [IsProduction, true, false]
+      BackupRetentionPeriod: !If [IsProduction, 7, 1]
+      DeletionProtection: !If [IsProduction, true, false]
+
+Outputs:
+  DBEndpoint:
+    Value: !GetAtt DBInstance.Endpoint.Address
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-DBEndpoint'
+  DBSecretArn:
+    Value: !Ref DBSecret
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-DBSecretArn'
+# AI Generated Code by Deloitte + Cursor (END)
